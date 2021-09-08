@@ -1,2 +1,1 @@
-def connect():
-    return 'stubbed'
+from .session import Session

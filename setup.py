@@ -8,4 +8,7 @@ setup(name='kalshi',
       author_email='michaelglucy@gmail.com',
       license='MIT',
       packages=['kalshi'],
-      zip_safe=True)
+      zip_safe=True,
+
+      tests_reqire=['nose'],
+)
