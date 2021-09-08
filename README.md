@@ -14,3 +14,5 @@ s = kalshi.Session(email=..., password=...)
 markets = s.get_markets_cached()['markets']
 pprint(markets[0])
 ```
+
+API spec: https://kalshi-public-docs.s3.amazonaws.com/KalshiAPI.html
