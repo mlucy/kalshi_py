@@ -1,4 +1,7 @@
 version: 2
 python:
   version: 3.7
-  - requiements: .readthedocs_requirements.txt
+  install:
+  - method: pip
+    path: .
+  - requirements: .readthedocs_requirements.txt
