@@ -2,3 +2,5 @@ steps:
 - pwd
 - find .
 - pydoc-markdown --build --site-dir _build/html -vv pydoc-markdown.yml
+- mv build/docs/_build .
+- rm -rf build/docs
