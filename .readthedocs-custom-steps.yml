@@ -1,2 +1,2 @@
 steps:
-- pydoc-markdown --build --site-dir /home/docs/checkouts/readthedocs.org/user_builds/kalshi-py/checkouts/latest/build/docs/_build/html
+- pydoc-markdown --build --site-dir _site/html
