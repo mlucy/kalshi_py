@@ -1,3 +1,4 @@
 steps:
+- pwd
 - find .
 - pydoc-markdown --build --site-dir _build/html -vv pydoc-markdown.yml
