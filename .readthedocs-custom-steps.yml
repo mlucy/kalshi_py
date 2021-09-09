@@ -1,2 +1,2 @@
 steps:
-- pydoc-markdown --build --site-dir $SITE_DIR -vv
+- pydoc-markdown --build --site-dir _build/html
