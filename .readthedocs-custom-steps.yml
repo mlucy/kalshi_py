@@ -1,2 +1,2 @@
 steps:
-- pydoc-markdown --build --site-dir . -vv
+- pydoc-markdown --build --site-dir _build/html --config-file mkdocs.yml -vv
