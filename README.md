@@ -15,4 +15,6 @@ markets = s.get_markets_cached()['markets']
 pprint(markets[0])
 ```
 
-API spec: https://kalshi-public-docs.s3.amazonaws.com/KalshiAPI.html
+Docs: https://kalshi-py.readthedocs.io/en/latest/autoapi/kalshi/index.html
+
+REST API spec: https://kalshi-public-docs.s3.amazonaws.com/KalshiAPI.html
