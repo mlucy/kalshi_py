@@ -36,6 +36,7 @@ extensions = [
 ]
 
 autoapi_dirs=['../../kalshi']
+autoapi_options=['members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
