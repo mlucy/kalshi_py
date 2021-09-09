@@ -11,5 +11,5 @@ setup(name='kalshi',
       zip_safe=True,
 
       install_requires=['requests'],
-      python_requires='=3.6.9',
+      python_requires='>=3',
 )
