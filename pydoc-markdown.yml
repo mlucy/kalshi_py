@@ -1,9 +1,11 @@
 loaders:
   - type: python
+
 processors:
   - type: filter
   - type: smart
   - type: crossref
+
 renderer:
   type: mkdocs
   pages:
@@ -16,3 +18,5 @@ renderer:
   mkdocs_config:
     site_name: My Project
     theme: readthedocs
+
+build_directory: docs/build
