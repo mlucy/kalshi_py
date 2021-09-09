@@ -2,6 +2,12 @@ import os
 import requests
 
 class Session():
+    """A Kalshi session.  All API requests are defined on this class.
+
+       :param str email: The email you use to log in.  (This can also be configured with the KALSHI_EMAIL environment variable.)
+       :param str password: The password you use to log in.  (This can also be configured with the KALSHI_PASSWORD environment variable.)
+       :param str endpoint: The Kalshi API endpoint.  Defaults to the public v1 API.
+"""
     def __init__(self, email=None, password=None,
                  endpoint='https://trading-api.kalshi.com/v1'):
         if email is None:

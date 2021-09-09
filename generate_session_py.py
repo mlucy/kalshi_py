@@ -19,7 +19,9 @@ for path in spec['paths']:
         fname = re.sub(r'(?<!^)(?=[A-Z])', '_', obj['operationId']).lower()
         arglist='self'
         objcode=''
+        comment = obj['description']+'\n\n'
         for param in obj.get('parameters', []):
+            comment += f":param {param['schema']['type']} {param['name']}: {param['description']}\n"
             if param.get('required', False):
                 arglist += f", {param['name']}"
             else:
@@ -35,6 +37,7 @@ for path in spec['paths']:
             objcode = f"dict((x, y) for x, y in [{objcode}] if y is not None)"
 
         add_line(4, f'def {fname}({arglist}):')
+        add_line(8, f'"""{comment}"""')
 
         add_line(8, f"return self.{method}(f'{path}', {objcode})")
         add_line(0)
