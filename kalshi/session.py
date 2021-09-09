@@ -35,7 +35,7 @@ class Session():
         self.token = parsed['token']
         self.user_id = parsed['user_id']
 
-    def post(self, path, obj=None):
+    def _post(self, path, obj=None):
         if obj is not None and obj != {}:
             res = requests.post(self.endpoint+path, json=obj, headers={'Authorization': self.token})
         else:
@@ -44,7 +44,7 @@ class Session():
             raise RuntimeError('Error from Kalshi API (%s) (%s)' % (res.status_code, res.text))
         return res.json()
 
-    def get(self, path, obj=None):
+    def _get(self, path, obj=None):
         if obj is not None and obj != {}:
             res = requests.get(self.endpoint+path, json=obj, headers={'Authorization': self.token})
         else:
