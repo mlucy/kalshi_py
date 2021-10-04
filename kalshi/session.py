@@ -34,30 +34,24 @@ class Session():
         parsed = res.json()
         self.token = parsed['token']
         self.user_id = parsed['user_id']
+        self.access_level = parsed['access_level']
 
-    def post(self, path, obj=None):
+    def _http_op(self, op, path, obj=None):
+        headers = {'Authorization': 'Basic ' + self.token}
         if obj is not None and obj != {}:
-            res = requests.post(self.endpoint+path, json=obj, headers={'Authorization': self.token})
+            res = getattr(requests, op)(self.endpoint+path, json=obj, headers=headers)
         else:
-            res = requests.post(self.endpoint+path, headers={'Authorization': self.token})
+            res = getattr(requests, op)(self.endpoint+path, headers=headers)
         if res.status_code != 200:
             raise RuntimeError('Error from Kalshi API (%s) (%s)' % (res.status_code, res.text))
         return res.json()
 
-    def get(self, path, obj=None):
-        if obj is not None and obj != {}:
-            res = requests.get(self.endpoint+path, json=obj, headers={'Authorization': self.token})
-        else:
-            res = requests.get(self.endpoint+path, headers={'Authorization': self.token})
-        if res.status_code != 200:
-            raise RuntimeError('Error from Kalshi API (%s) (%s)' % (res.status_code, res.text))
-        return res.json()
 
     def get_markets_cached(self):
         """End-point for listing / discovering markets on Kalshi with data that is cached and so slightly lagged.
 
 """
-        return self.get(f'/cached/markets', None)
+        return self._http_op('get', f'/cached/markets', None)
 
     def get_market_history_cached(self, market_id, last_seen_ts=None):
         """End-point for getting the statistics history for a market with data that is cached and so slightly lagged.
@@ -69,13 +63,13 @@ The last_seen_ts is inclusive, which means a market history point at last_seen_t
 :param string market_id: Should be filled with the id of the target market
 :param integer last_seen_ts: If provided, restricts history to trades starting from lastSeenTs
 """
-        return self.get(f'/cached/markets/{market_id}/stats_history', dict((x, y) for x, y in [('last_seen_ts', last_seen_ts)] if y is not None))
+        return self._http_op('get', f'/cached/markets/{market_id}/stats_history', dict((x, y) for x, y in [('last_seen_ts', last_seen_ts)] if y is not None))
 
     def get_exchange_status(self):
         """End-point for getting the exchange status
 
 """
-        return self.get(f'/exchange/status', None)
+        return self._http_op('get', f'/exchange/status', None)
 
     def login_mfa(self):
         """End-point to start a rest session with Kalshi, when you have 2FA enabled.
@@ -83,19 +77,19 @@ The last_seen_ts is inclusive, which means a market history point at last_seen_t
 Before calling this end-point you should call (POST /log_in) using email and password.
 
 """
-        return self.post(f'/log_in_mfa', None)
+        return self._http_op('post', f'/log_in_mfa', None)
 
     def logout(self):
         """End-point to terminates your session with Kalshi.
 
 """
-        return self.post(f'/log_out', None)
+        return self._http_op('post', f'/log_out', None)
 
     def get_markets(self):
         """End-point for listing / discovering markets on Kalshi.
 
 """
-        return self.get(f'/markets', None)
+        return self._http_op('get', f'/markets', None)
 
     def get_market_cached(self, market_id):
         """End-point for getting data about a specific market with data that is cached and so slightly lagged.
@@ -104,7 +98,7 @@ The value for the market_id path parameter should match the id value of the targ
 
 :param string market_id: Should be filled with the id of the target market
 """
-        return self.get(f'/markets/{market_id}', None)
+        return self._http_op('get', f'/markets/{market_id}', None)
 
     def get_market_order_book_cached(self, market_id):
         """End-point for getting the orderbook for a market with data that is cached and so slightly lagged.
@@ -113,7 +107,7 @@ The value for the market_id path parameter should match the id value of the targ
 
 :param string market_id: Should be filled with the id of the target market
 """
-        return self.get(f'/markets/{market_id}/order_book', None)
+        return self._http_op('get', f'/markets/{market_id}/order_book', None)
 
     def get_market_history(self, market_id, last_seen_ts=None):
         """End-point for getting the statistics history for a market.
@@ -125,7 +119,7 @@ The last_seen_ts is inclusive, which means a market history point at last_seen_t
 :param string market_id: Should be filled with the id of the target market
 :param integer last_seen_ts: If provided, restricts history to trades starting from lastSeenTs
 """
-        return self.get(f'/markets/{market_id}/stats_history', dict((x, y) for x, y in [('last_seen_ts', last_seen_ts)] if y is not None))
+        return self._http_op('get', f'/markets/{market_id}/stats_history', dict((x, y) for x, y in [('last_seen_ts', last_seen_ts)] if y is not None))
 
     def reset_password(self):
         """End-point to request a password reset email link.
@@ -133,7 +127,7 @@ The last_seen_ts is inclusive, which means a market history point at last_seen_t
 To be used in case you forget your password.
 
 """
-        return self.post(f'/passwords/reset', None)
+        return self._http_op('post', f'/passwords/reset', None)
 
     def reset_password_confirm(self, code):
         """End-point to finish the password reset flow.
@@ -142,33 +136,35 @@ The code param on the path should be filled with the verification code sent by e
 
 :param string code: Should be filled with the verification code received on the sign-up email.
 """
-        return self.put(f'/passwords/reset/{code}/confirm', None)
+        return self._http_op('put', f'/passwords/reset/{code}/confirm', None)
 
     def user_create(self):
         """End-point for creating an user. A call to this end-point starts the sign-up flow.
 
 """
-        return self.post(f'/users', None)
+        return self._http_op('post', f'/users', None)
 
-    def user_get_profile(self, user_id):
+    def user_get_profile(self, user_id=None):
         """End-point for retrieving the logged in user's profile.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}', None)
 
-    def user_update_profile(self, user_id):
+    def user_update_profile(self, user_id=None):
         """End-point for submitting your user profile during sign-up, or updating it after sign-up is complete.
 
 The value for the user_id path parameter should match the user_id value returned either in the response for the last login request (POST /log_in) or for the create user request (POST /users).
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.put(f'/users/{user_id}', None)
+        user_id = user_id or self.user_id
+        return self._http_op('put', f'/users/{user_id}', None)
 
-    def user_get_account_history(self, user_id, ShouldReturnDeposits=None, ShouldReturnWithdrawals=None, ShouldReturnOrders=None, ShouldReturnSettlements=None, ShouldReturnTrades=None, Limit=None):
+    def user_get_account_history(self, user_id=None, ShouldReturnDeposits=None, user_id=None, ShouldReturnWithdrawals=None, user_id=None, ShouldReturnOrders=None, user_id=None, ShouldReturnSettlements=None, user_id=None, ShouldReturnTrades=None, user_id=None, Limit=None, user_id=None):
         """End-point for getting the logged in user's important past actions and events related to the user's positions.
 
 This contains entries for user's explicit actions but also for market events.
@@ -191,27 +187,30 @@ last login request (POST /log_in).
 :param boolean ShouldReturnTrades: If true the response should include trade entries
 :param integer Limit: Restricts the response to a return the first "limit" amount of acct history items
 """
-        return self.get(f'/users/{user_id}/account/history', dict((x, y) for x, y in [('ShouldReturnDeposits', ShouldReturnDeposits), ('ShouldReturnWithdrawals', ShouldReturnWithdrawals), ('ShouldReturnOrders', ShouldReturnOrders), ('ShouldReturnSettlements', ShouldReturnSettlements), ('ShouldReturnTrades', ShouldReturnTrades), ('Limit', Limit)] if y is not None))
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/account/history', dict((x, y) for x, y in [('ShouldReturnDeposits', ShouldReturnDeposits), ('ShouldReturnWithdrawals', ShouldReturnWithdrawals), ('ShouldReturnOrders', ShouldReturnOrders), ('ShouldReturnSettlements', ShouldReturnSettlements), ('ShouldReturnTrades', ShouldReturnTrades), ('Limit', Limit)] if y is not None))
 
-    def user_get_balance(self, user_id):
+    def user_get_balance(self, user_id=None):
         """End-point for getting the balance of the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/balance', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/balance', None)
 
-    def user_list_ledgerx_bank_accounts(self, user_id):
+    def user_list_ledgerx_bank_accounts(self, user_id=None):
         """End-point for getting connected accounts from the clearing house.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/banks/linked_accounts', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/banks/linked_accounts', None)
 
-    def user_link_bank_accounts(self, user_id):
+    def user_link_bank_accounts(self, user_id=None):
         """End-point for submitting to finish bank account linking.
 
 This end-point sends the bank accounts connected by the user in the front-end to our clearing house.
@@ -220,9 +219,10 @@ The value for the user_id path parameter should match the user_id value returned
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/banks/linked_accounts', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/banks/linked_accounts', None)
 
-    def get_user_deposits(self, user_id, page_size=None, page_number=None):
+    def get_user_deposits(self, user_id=None, page_size=None, user_id=None, page_number=None, user_id=None):
         """End-point for getting all deposits for the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -231,9 +231,10 @@ The value for the user_id path parameter should match the user_id value returned
 :param integer page_size: Number of deposits in each page.
 :param integer page_number: Number of the page to be retrieved.
 """
-        return self.get(f'/users/{user_id}/deposits', dict((x, y) for x, y in [('page_size', page_size), ('page_number', page_number)] if y is not None))
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/deposits', dict((x, y) for x, y in [('page_size', page_size), ('page_number', page_number)] if y is not None))
 
-    def user_request_deposit(self, user_id):
+    def user_request_deposit(self, user_id=None):
         """End-point for starting deposits on the logged in user's account.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -242,36 +243,40 @@ In order to request deposits you need to have connected at least one account usi
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/deposits', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/deposits', None)
 
-    def user_send_email_confirmation(self, user_id):
+    def user_send_email_confirmation(self, user_id=None):
         """End-point for re-sending email verification. To be used in case e-mail verification doesn't arrive or verification code is expired.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the create user request (POST /users).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/email_confirmation', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/email_confirmation', None)
 
-    def user_get_kyc(self, user_id):
+    def user_get_kyc(self, user_id=None):
         """End-point for retrieving your user kyc profile.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/kyc', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/kyc', None)
 
-    def user_update_kyc(self, user_id):
+    def user_update_kyc(self, user_id=None):
         """End-point for submitting / updating your user kyc profile during sign-up.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the create user request (POST /users).
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.put(f'/users/{user_id}/kyc', None)
+        user_id = user_id or self.user_id
+        return self._http_op('put', f'/users/{user_id}/kyc', None)
 
-    def user_get_notifications(self, user_id, page_size=None, page_number=None):
+    def user_get_notifications(self, user_id=None, page_size=None, user_id=None, page_number=None, user_id=None):
         """End-point for getting notifications for the current logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -280,9 +285,10 @@ The value for the user_id path parameter should match the user_id value returned
 :param integer page_size: Optional parameter to specify the number of results per page
 :param integer page_number: Optional parameter to specify which page of the results should be retrieved
 """
-        return self.get(f'/users/{user_id}/notifications', dict((x, y) for x, y in [('page_size', page_size), ('page_number', page_number)] if y is not None))
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/notifications', dict((x, y) for x, y in [('page_size', page_size), ('page_number', page_number)] if y is not None))
 
-    def notification_mark_read(self, user_id, notification_id):
+    def notification_mark_read(self, user_id=None, notification_id, user_id=None):
         """End-point for marking a notification as read.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -292,18 +298,20 @@ The value for the notification_id path parameter should match the notification_i
 :param string user_id: user_id should be filled with your user_id provided on log_in
 :param string notification_id: notification_id should be filled with the id of the notification to be mark as read
 """
-        return self.put(f'/users/{user_id}/notifications/{notification_id}/read', None)
+        user_id = user_id or self.user_id
+        return self._http_op('put', f'/users/{user_id}/notifications/{notification_id}/read', None)
 
-    def get_notification_preferences(self, user_id):
+    def get_notification_preferences(self, user_id=None):
         """End-point for getting e-mail subscription mode for the current user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/notifications/preferences', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/notifications/preferences', None)
 
-    def user_orders_get(self, user_id, market_id=None, is_yes=None, min_price=None, max_price=None, min_place_count=None, max_place_count=None, min_initial_count=None, max_initial_count=None, min_remaining_count=None, max_remaining_count=None, min_date=None, max_date=None):
+    def user_orders_get(self, user_id=None, market_id=None, user_id=None, is_yes=None, user_id=None, min_price=None, user_id=None, max_price=None, user_id=None, min_place_count=None, user_id=None, max_place_count=None, user_id=None, min_initial_count=None, user_id=None, max_initial_count=None, user_id=None, min_remaining_count=None, user_id=None, max_remaining_count=None, user_id=None, min_date=None, user_id=None, max_date=None, user_id=None):
         """End-point for getting all orders for the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -322,18 +330,20 @@ The value for the user_id path parameter should match the user_id value returned
 :param string min_date: Restricts the response to orders after a timestamp
 :param string max_date: Restricts the response to orders before a timestamp
 """
-        return self.get(f'/users/{user_id}/orders', dict((x, y) for x, y in [('market_id', market_id), ('is_yes', is_yes), ('min_price', min_price), ('max_price', max_price), ('min_place_count', min_place_count), ('max_place_count', max_place_count), ('min_initial_count', min_initial_count), ('max_initial_count', max_initial_count), ('min_remaining_count', min_remaining_count), ('max_remaining_count', max_remaining_count), ('min_date', min_date), ('max_date', max_date)] if y is not None))
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/orders', dict((x, y) for x, y in [('market_id', market_id), ('is_yes', is_yes), ('min_price', min_price), ('max_price', max_price), ('min_place_count', min_place_count), ('max_place_count', max_place_count), ('min_initial_count', min_initial_count), ('max_initial_count', max_initial_count), ('min_remaining_count', min_remaining_count), ('max_remaining_count', max_remaining_count), ('min_date', min_date), ('max_date', max_date)] if y is not None))
 
-    def user_order_create(self, user_id):
+    def user_order_create(self, user_id=None):
         """End-point for submitting orders in a market.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/orders', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/orders', None)
 
-    def user_order_cancel(self, user_id, order_id):
+    def user_order_cancel(self, user_id=None, order_id, user_id=None):
         """End-point for canceling orders.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -346,9 +356,10 @@ The zeroed order is returned on the response payload, as a form of validation fo
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 :param string order_id: This order_id should be filled with the id of the order to be decrease
 """
-        return self.delete(f'/users/{user_id}/orders/{order_id}', None)
+        user_id = user_id or self.user_id
+        return self._http_op('delete', f'/users/{user_id}/orders/{order_id}', None)
 
-    def user_order_decrease(self, user_id, order_id):
+    def user_order_decrease(self, user_id=None, order_id, user_id=None):
         """End-point for decreasing the number of contracts on orders. This is the only kind of edit we support on orders.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -358,18 +369,20 @@ The value for the order_id should match the id field of the order you want to de
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 :param string order_id: This order_id should be filled with the id of the order to be decrease
 """
-        return self.post(f'/users/{user_id}/orders/{order_id}/decrease', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/orders/{order_id}/decrease', None)
 
-    def user_change_password(self, user_id):
+    def user_change_password(self, user_id=None):
         """End-point for updating logged-in user password.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.put(f'/users/{user_id}/password', None)
+        user_id = user_id or self.user_id
+        return self._http_op('put', f'/users/{user_id}/password', None)
 
-    def user_create_plaid_link_token(self, user_id):
+    def user_create_plaid_link_token(self, user_id=None):
         """End-point for creating a link token. This is required to be able to connect bank accounts via Plaid.
 
 Look at plaid docs (https://plaid.com/docs/api/tokens/#linktokencreate) for more information on the token and how plaid works.
@@ -378,27 +391,30 @@ The value for the user_id path parameter should match the user_id value returned
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/plaid/link_token', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/plaid/link_token', None)
 
-    def user_get_portfolio_history(self, user_id):
+    def user_get_portfolio_history(self, user_id=None):
         """End-point for getting the logged in user's portfolio historical track.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/portfolio/history', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/portfolio/history', None)
 
-    def user_get_market_positions(self, user_id):
+    def user_get_market_positions(self, user_id=None):
         """End-point for getting all market positions for the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/positions', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/positions', None)
 
-    def user_get_market_position(self, user_id, market_id):
+    def user_get_market_position(self, user_id=None, market_id, user_id=None):
         """End-point for getting the market positions for the logged in user, in a specific market.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -408,9 +424,10 @@ The value for the market_id path parameter should match the id value of the targ
 :param string user_id: Should be filled with your user_id provided on log_in
 :param string market_id: Should be filled with the id of the target market
 """
-        return self.get(f'/users/{user_id}/positions/{market_id}', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/positions/{market_id}', None)
 
-    def change_subscription(self, user_id):
+    def change_subscription(self, user_id=None):
         """End-point for changing e-mail subscription mode for the current user.
 
 This end-point is very useful for users that have a large volume of orders and don't want to be email notified whenever an order is submitted / edited / canceled or matches.
@@ -421,9 +438,10 @@ The value for the user_id path parameter should match the user_id value returned
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.put(f'/users/{user_id}/subscribe', None)
+        user_id = user_id or self.user_id
+        return self._http_op('put', f'/users/{user_id}/subscribe', None)
 
-    def user_trades_get(self, user_id, market_id=None, order_id=None, MinPrice=None, MaxPrice=None, MinCount=None, max_count=None, min_date=None, max_date=None):
+    def user_trades_get(self, user_id=None, market_id=None, user_id=None, order_id=None, user_id=None, MinPrice=None, user_id=None, MaxPrice=None, user_id=None, MinCount=None, user_id=None, max_count=None, user_id=None, min_date=None, user_id=None, max_date=None, user_id=None):
         """End-point for getting all trades for the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -438,27 +456,30 @@ The value for the user_id path parameter should match the user_id value returned
 :param string min_date: Restricts the response to trades after a timestamp.
 :param string max_date: Restricts the response to trades before a timestamp.
 """
-        return self.get(f'/users/{user_id}/trades', dict((x, y) for x, y in [('market_id', market_id), ('order_id', order_id), ('MinPrice', MinPrice), ('MaxPrice', MaxPrice), ('MinCount', MinCount), ('max_count', max_count), ('min_date', min_date), ('max_date', max_date)] if y is not None))
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/trades', dict((x, y) for x, y in [('market_id', market_id), ('order_id', order_id), ('MinPrice', MinPrice), ('MaxPrice', MaxPrice), ('MinCount', MinCount), ('max_count', max_count), ('min_date', min_date), ('max_date', max_date)] if y is not None))
 
-    def user_verify(self, user_id):
+    def user_verify(self, user_id=None):
         """End-point for completing email verification during sign-up.
 
 The value for the user_id path parameter should match the user_id value returned on the email verification link query param.
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/verify', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/verify', None)
 
-    def user_get_watchlist(self, user_id):
+    def user_get_watchlist(self, user_id=None):
         """End-point for getting the market watchlist for the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
 
 :param string user_id: Should be filled with your user_id provided on log_in
 """
-        return self.get(f'/users/{user_id}/watchlist', None)
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/watchlist', None)
 
-    def user_remove_watchlist(self, user_id, market_id):
+    def user_remove_watchlist(self, user_id=None, market_id, user_id=None):
         """End-point for removing a market from the logged in user's watchlist.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -468,9 +489,10 @@ The value for the market_id path parameter should match the id value of the mark
 :param string user_id: Should be filled with your user_id provided on log_in
 :param string market_id: Should be filled with the id of the target market
 """
-        return self.delete(f'/users/{user_id}/watchlist/{market_id}', None)
+        user_id = user_id or self.user_id
+        return self._http_op('delete', f'/users/{user_id}/watchlist/{market_id}', None)
 
-    def user_add_watchlist(self, user_id, market_id):
+    def user_add_watchlist(self, user_id=None, market_id, user_id=None):
         """End-point for adding a market to the logged in user's watchlist.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -480,9 +502,10 @@ The value for the market_id path parameter should match the id value of the mark
 :param string user_id: user_id should be filled with your user_id provided on log_in
 :param string market_id: market_id should be filled with the id of the market to be added to the watchlist
 """
-        return self.put(f'/users/{user_id}/watchlist/{market_id}', None)
+        user_id = user_id or self.user_id
+        return self._http_op('put', f'/users/{user_id}/watchlist/{market_id}', None)
 
-    def get_user_withdrawals(self, user_id, page_size=None, page_number=None):
+    def get_user_withdrawals(self, user_id=None, page_size=None, user_id=None, page_number=None, user_id=None):
         """End-point for getting all withdrawals for the logged in user.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -491,9 +514,10 @@ The value for the user_id path parameter should match the user_id value returned
 :param integer page_size: Number of withdrawals in each page.
 :param integer page_number: Number of the page to be retrieved.
 """
-        return self.get(f'/users/{user_id}/withdrawals', dict((x, y) for x, y in [('page_size', page_size), ('page_number', page_number)] if y is not None))
+        user_id = user_id or self.user_id
+        return self._http_op('get', f'/users/{user_id}/withdrawals', dict((x, y) for x, y in [('page_size', page_size), ('page_number', page_number)] if y is not None))
 
-    def user_request_withdrawal(self, user_id):
+    def user_request_withdrawal(self, user_id=None):
         """End-point for starting deposits on the logged in user's account.
 
 The value for the user_id path parameter should match the user_id value returned on the response for the last login request (POST /log_in).
@@ -502,11 +526,12 @@ In order to request deposits you need to have connected at least one account usi
 
 :param string user_id: This parameter should be filled with your user_id provided on log_in
 """
-        return self.post(f'/users/{user_id}/withdrawals', None)
+        user_id = user_id or self.user_id
+        return self._http_op('post', f'/users/{user_id}/withdrawals', None)
 
     def send_sign_up_link(self):
         """End-point for sending a link to resume sign-up. To be used in case the user verification e-mail is lost.
 
 """
-        return self.post(f'/users/resume_sign_up', None)
+        return self._http_op('post', f'/users/resume_sign_up', None)
 

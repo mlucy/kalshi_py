@@ -34,22 +34,16 @@ class Session():
         parsed = res.json()
         self.token = parsed['token']
         self.user_id = parsed['user_id']
+        self.access_level = parsed['access_level']
 
-    def post(self, path, obj=None):
+    def _http_op(self, op, path, obj=None):
+        headers = {'Authorization': 'Basic ' + self.token}
         if obj is not None and obj != {}:
-            res = requests.post(self.endpoint+path, json=obj, headers={'Authorization': self.token})
+            res = getattr(requests, op)(self.endpoint+path, json=obj, headers=headers)
         else:
-            res = requests.post(self.endpoint+path, headers={'Authorization': self.token})
+            res = getattr(requests, op)(self.endpoint+path, headers=headers)
         if res.status_code != 200:
             raise RuntimeError('Error from Kalshi API (%s) (%s)' % (res.status_code, res.text))
         return res.json()
 
-    def get(self, path, obj=None):
-        if obj is not None and obj != {}:
-            res = requests.get(self.endpoint+path, json=obj, headers={'Authorization': self.token})
-        else:
-            res = requests.get(self.endpoint+path, headers={'Authorization': self.token})
-        if res.status_code != 200:
-            raise RuntimeError('Error from Kalshi API (%s) (%s)' % (res.status_code, res.text))
-        return res.json()
 
